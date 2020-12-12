@@ -2,6 +2,14 @@
 
 confluence-cloud-vim is - as the name might already disclose - a vim plugin to support markdown based creating/editing of confluence cloud pages
 
+### Usage
+
+``` 
+vim conf://<SPACEKEY>/<PAGETITLE>
+```
+
+To edit confluence pages within vim use the **conf://** prefix followed by the spacekey and the pagetitle
+
 ### Dependencies
 
 The plugin makes use of the following python modules 
@@ -29,6 +37,10 @@ To generate the auth string you can use the following command
 echo -n <USERNAME>:<ACCESSTOKEN> | base64
 ```
 to get an api access token please access https://id.atlassian.com/manage-profile/security/api-tokens
+
+### Installation
+
+Place the confluence-vim.vim file in your .vim/plugin folder
 
 ### Supported markdown tags
 
