@@ -2,6 +2,38 @@ if !has('python3')
     echo "Error: Required vim compiled with +python3"
     finish
 endif
+python3 << EOF
+#Dictionaries containg the confluence specific macros and their equivalent vim markdown tags
+#Details cna be found while looking at the storage format information
+md2confluence = {r'```(.*?)```':r'<ac:structured-macro ac:name="code"><ac:plain-text-body><![CDATA[\1]]></ac:plain-text-body></ac:structured-macro>',
+    r'info\[(.*?)\]':r'<ac:structured-macro ac:name="info"><ac:rich-text-body> <p>\1</p></ac:rich-text-body></ac:structured-macro>',
+    r'warning\[(.*?)\]':r'<ac:structured-macro ac:name="warning"><ac:rich-text-body> <p>\1</p></ac:rich-text-body></ac:structured-macro>',
+    r'note\[(.*?)\]':r'<ac:structured-macro ac:name="note"><ac:rich-text-body> <p>\1</p></ac:rich-text-body></ac:structured-macro>'}
+
+confluence2md = {r'<ac:structured-macro ac:name="info" ac:schema-version="1" ac:macro-id=".*?"><ac:rich-text-body>\s*<p>(.*?)</p></ac:rich-text-body></ac:structured-macro>':r'info[\1]',
+           r'<ac:structured-macro ac:name="code" ac:schema-version="1" .*?><ac:plain-text-body><!\[CDATA\[(.*?)\]\]></ac:plain-text-body></ac:structured-macro>':r'```\1```',
+           r'<ac:structured-macro ac:name="warning" ac:schema-version="1" ac:macro-id=".*?"><ac:rich-text-body>\s*<p>(.*?)</p></ac:rich-text-body></ac:structured-macro>':r'warning[\1]',
+           r'<ac:structured-macro ac:name="note" ac:schema-version="1" ac:macro-id=".*?"><ac:rich-text-body>\s*<p>(.*?)</p></ac:rich-text-body></ac:structured-macro>':r'note[\1]'}
+
+class RegexDict(dict):
+    """
+    RegexDict takes an dictionary and replaces within 
+    a provided string the values contained in the 
+    keys of the dict through the corresponding values
+    """
+    import re
+    def __init__(self, *args, **kwds):
+        self.update(*args, **kwds)
+
+    def __getitem__(self, required):
+        for key in dict.__iter__(self):
+            if self.re.search(key, required,flags=self.re.MULTILINE | self.re.DOTALL):
+                required=self.re.sub(key,dict.__getitem__(self, key),required,0,self.re.DOTALL | self.re.MULTILINE)
+            else:
+                required=required
+        return required
+
+EOF
 
 function! OpenConfluencePage(url)
 python3 << EOF
@@ -12,6 +44,7 @@ import json
 import html2text
 import requests
 import vim
+import re
 
 class Error(Exception):
     """ Base error class for module specific exceptions """
@@ -129,7 +162,20 @@ try:
                         article_version = article_data['version']['number']
                         h2t = html2text.HTML2Text()
                         h2t.body_width = 0
+                        regex_dict = RegexDict(confluence2md)
+                        article_content=regex_dict[article_content]
+
+                        #The markdown module addes some unnecessay paragraph tags within the code block
+                        #as a workaround the code is stored before the markdown is generated and replaces 
+                        #it after the generation with the original value
+                        codemacro=re.search(r'```(.*)```', article_content, re.DOTALL | re.MULTILINE)
+                        if codemacro:
+                            code="".join(codemacro.group(1))
+                            article_content=re.sub('```(.*)```', 'CODEMACRO', article_content, 0,re.DOTALL | re.MULTILINE)
                         article_markdown = h2t.handle(article_content)
+                        if codemacro:
+                            article_markdown = re.sub('CODEMACRO','```' + code + '```' ,article_markdown,0,re.DOTALL|re.MULTILINE)
+
                         vim.command("let b:confv = '%s'" % article_version)
 
                         del cb[:]
@@ -179,6 +225,34 @@ python3 << EOF
 Convert the current vim buffer into markdown
 und store the page in the specific confluence space
 """
+from markdown.preprocessors import Preprocessor
+from markdown.postprocessors import Postprocessor
+from markdown.extensions import Extension
+import markdown
+import re
+
+
+class MacroRender(Preprocessor):
+    def run(self, lines):
+        regex_dict = RegexDict(md2confluence)
+        content="\n".join(lines)
+        output=regex_dict[content].splitlines()
+        return output
+
+class ConfluenceExtension(Extension):
+    def extendMarkdown(self, md):
+        md.preprocessors.register(MacroRender(md.parser), 'macro', 175)
+        md.postprocessors.register(CodePostprocessor(md),'code',165)
+
+class CodePostprocessor(Postprocessor):
+    def run(self, html):
+        #the braces around CDATA entities are replaced by the
+        #corresponding html value < - &lt,
+        #the regex below are used to revert that change
+        html=re.sub(r'&lt;!\[CDATA',r'<![CDATA',html)
+        html=re.sub(r'\]&gt;',r']>',html)
+        return html
+
 import json
 import markdown
 import requests
@@ -204,7 +278,8 @@ if int(vim.eval("b:confid")) >=0:
     article_parent_pageid = int(vim.eval("b:parent_pageid"))
     article_id = int(vim.eval("b:confid"))
     article_version = int(vim.eval("b:confv")) + 1
-    article_content = markdown.markdown("\n".join(cb))
+    tmp="\n".join(cb)
+    article_content = markdown.markdown(tmp, extensions=[ConfluenceExtension(),'md_in_html'])
 
     # Add a new post
     if article_id == 0:

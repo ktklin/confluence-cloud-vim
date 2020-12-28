@@ -121,3 +121,10 @@ Asterisks
     </tr>
 </table>
 ```
+
+### Confluence cloud specific tags
+```
+info[Content of the info panel]
+note[Content of the note panel]
+warning[Content of the warning panel]
+```
