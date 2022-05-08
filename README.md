@@ -17,7 +17,7 @@ The plugin makes use of the following python modules
 * html2text
 * markdown
 * requests
-* vim
+* vim / python-vim
 
 ### Configuration
 
