@@ -8,12 +8,16 @@ python3 << EOF
 md2confluence = {r'```(.*?)```':r'<ac:structured-macro ac:name="code"><ac:plain-text-body><![CDATA[\1]]></ac:plain-text-body></ac:structured-macro>',
     r'info\[(.*?)\]':r'<ac:structured-macro ac:name="info"><ac:rich-text-body> <p>\1</p></ac:rich-text-body></ac:structured-macro>',
     r'warning\[(.*?)\]':r'<ac:structured-macro ac:name="warning"><ac:rich-text-body> <p>\1</p></ac:rich-text-body></ac:structured-macro>',
-    r'note\[(.*?)\]':r'<ac:structured-macro ac:name="note"><ac:rich-text-body> <p>\1</p></ac:rich-text-body></ac:structured-macro>'}
+    r'note\[(.*?)\]':r'<ac:structured-macro ac:name="note"><ac:rich-text-body> <p>\1</p></ac:rich-text-body></ac:structured-macro>',
+    r'expand\[(.*?) : (.*?)\]':r'<ac:structured-macro ac:name="expand" ac:schema-version="1" ac:macro-id=""><ac:parameter ac:name="title">\1</ac:parameter><ac:rich-text-body><p>\2</p></ac:rich-text-body></ac:structured-macro>',
+    r'tip\[(.*?)\]':r'<ac:structured-macro ac:name="tip"><ac:rich-text-body> <p>\1</p></ac:rich-text-body></ac:structured-macro>'}
 
 confluence2md = {r'<ac:structured-macro ac:name="info" ac:schema-version="1" ac:macro-id=".*?"><ac:rich-text-body>\s*<p>(.*?)</p></ac:rich-text-body></ac:structured-macro>':r'info[\1]',
            r'<ac:structured-macro ac:name="code" ac:schema-version="1" .*?><ac:plain-text-body><!\[CDATA\[(.*?)\]\]></ac:plain-text-body></ac:structured-macro>':r'```\1```',
            r'<ac:structured-macro ac:name="warning" ac:schema-version="1" ac:macro-id=".*?"><ac:rich-text-body>\s*<p>(.*?)</p></ac:rich-text-body></ac:structured-macro>':r'warning[\1]',
-           r'<ac:structured-macro ac:name="note" ac:schema-version="1" ac:macro-id=".*?"><ac:rich-text-body>\s*<p>(.*?)</p></ac:rich-text-body></ac:structured-macro>':r'note[\1]'}
+           r'<ac:structured-macro ac:name="note" ac:schema-version="1" ac:macro-id=".*?"><ac:rich-text-body>\s*<p>(.*?)</p></ac:rich-text-body></ac:structured-macro>':r'note[\1]',
+           r'<ac:structured-macro ac:name="expand" ac:schema-version="1" ac:macro-id=".*?"><ac:parameter ac:name="title">(.*?)</ac:parameter><ac:rich-text-body><p>(.*?)</p></ac:rich-text-body></ac:structured-macro>':r'expand[\1 : \2]',
+           r'<ac:structured-macro ac:name="tip" ac:schema-version="1" ac:macro-id=".*?"><ac:rich-text-body>\s*<p>(.*?)</p></ac:rich-text-body></ac:structured-macro>':r'tip[\1]'}
 
 class RegexDict(dict):
     """
