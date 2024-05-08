@@ -127,4 +127,6 @@ Asterisks
 info[Content of the info panel]
 note[Content of the note panel]
 warning[Content of the warning panel]
+tip[Content of the tip/success panel]
+expand[Expand title : Expand content]
 ```
